@@ -1,0 +1,19 @@
+Copyright (c) 2026 Roman. All rights reserved.
+
+This source code and application ("Головне з підручника — 5 клас") may not
+be copied, modified, redistributed, published, sublicensed, or used, in
+whole or in part, without prior written permission from the copyright
+holder.
+
+Important limitation (read before relying on this file):
+This license gives you a LEGAL basis to object to copying. It does not
+give you a TECHNICAL one. Any HTML/JavaScript that runs in a visitor's
+browser can always be viewed by that visitor via "View Page Source" or
+browser developer tools — no license file, minification, or obfuscation
+changes that. Keeping this repository private only stops people who do
+not have repository access from browsing the code on GitHub itself; it
+does nothing to hide the code from someone who opens the live page.
+
+Replace "Roman" above with your full legal name if you want this notice
+to carry real weight in a dispute — a first name alone is weak evidence
+of who actually holds the copyright.

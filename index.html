@@ -119,11 +119,11 @@ function renderBooks() {
     grid.innerHTML = BOOKS.map(function(b) {
         var active = b.id === selectedBookId ? " active" : "";
         var count = (db[b.id] || []).length;
-        return '<button type="button" class="book-card' + active + '" onclick="selectBook(\'' + b.id + '\')">' +
-            '<div style="display:flex; justify-content:space-between;"><span>' + b.icon + '</span><span style="font-size:11px; color:var(--muted);">Записів: ' + count + '</span></div>' +
-            '<div class="book-subject">' + b.subject + '</div>' +
-            '<div class="book-authors">' + b.title + '</div>' +
-        '</button>';
+        return `<button type="button" class="book-card${active}" onclick="selectBook('${b.id}')">
+            <div style="display:flex; justify-content:space-between;"><span>${b.icon}</span><span style="font-size:11px; color:var(--muted);">Записів: ${count}</span></div>
+            <div class="book-subject">${b.subject}</div>
+            <div class="book-authors">${b.title}</div>
+        </button>`;
     }).join("");
 }
 
@@ -144,7 +144,7 @@ function renderPills() {
     var container = document.getElementById("savedItemsList");
     container.innerHTML = list.map(function(item, idx) {
         var label = item.para ? ("§" + item.para + " (с." + item.page + ")") : ("Стор. " + item.page);
-        return '<button type="button" class="pill" onclick="selectByIndex(' + idx + ')">' + escapeHtml(label) + '</button>';
+        return `<button type="button" class="pill" onclick="selectByIndex(${idx})">${escapeHtml(label)}</button>`;
     }).join("");
 }
 
@@ -167,28 +167,41 @@ function runSmartSearch() {
 }
 
 function renderEntry(item) {
-    var facts = (item.keyFacts || []).map(function(f) { return '<li>' + escapeHtml(f) + '</li>'; }).join("");
-    document.getElementById("resultContainer").innerHTML =
-        '<div class="box" style="background:#eef2ff; border-color:#c7d2fe;">' +
-            '<div style="font-size:11px; font-weight:800; color:var(--primary); text-transform:uppercase;">' +
-                (item.para ? 'Параграф §' + escapeHtml(item.para) + ' • ' : '') + 'Сторінка ' + escapeHtml(item.page || '—') +
-            '</div>' +
-            '<div style="font-size:18px; font-weight:700; margin-top:2px;">' + escapeHtml(item.topic) + '</div>' +
-        '</div>' +
-        '<div class="box"><div class="box-label">📌 Головна суть (найважливіше)</div><div style="font-size:16px; font-weight:600;">' + escapeHtml(item.mainIdea) + '</div></div>' +
-        '<div class="box"><div class="box-label">🔑 Ключові факти, правила та дати</div><ul class="facts-list">' + facts + '</ul></div>' +
-        (item.tip ? '<div class="tip-box"><b>💡 Що запитає вчитель:</b> ' + escapeHtml(item.tip) + '</div>' : '');
+    var facts = (item.keyFacts || []).map(function(f) { return `<li>${escapeHtml(f)}</li>`; }).join("");
+    var paraStr = item.para ? `Параграф §${escapeHtml(item.para)} • ` : '';
+    var pageStr = `Сторінка ${escapeHtml(item.page || '—')}`;
+    var tipStr = item.tip ? `<div class="tip-box"><b>💡 Що запитає вчитель:</b> ${escapeHtml(item.tip)}</div>` : '';
+
+    document.getElementById("resultContainer").innerHTML = `
+        <div class="box" style="background:#eef2ff; border-color:#c7d2fe;">
+            <div style="font-size:11px; font-weight:800; color:var(--primary); text-transform:uppercase;">
+                ${paraStr}${pageStr}
+            </div>
+            <div style="font-size:18px; font-weight:700; margin-top:2px;">${escapeHtml(item.topic)}</div>
+        </div>
+        <div class="box">
+            <div class="box-label">📌 Головна суть (найважливіше)</div>
+            <div style="font-size:16px; font-weight:600;">${escapeHtml(item.mainIdea)}</div>
+        </div>
+        <div class="box">
+            <div class="box-label">🔑 Ключові факти, правила та дати</div>
+            <ul class="facts-list">${facts}</ul>
+        </div>
+        ${tipStr}
+    `;
 }
 
 function renderNotFound(query) {
-    document.getElementById("resultContainer").innerHTML =
-        '<div class="empty-box">' +
-            '<h3 style="margin-bottom:6px;">Запит «' + escapeHtml(query) + '» ще не збережений</h3>' +
-            '<div style="display:flex; gap:10px; justify-content:center; margin-top:14px;">' +
-                '<button type="button" class="btn btn-primary" onclick="generateWithAI(\'' + escapeHtml(query) + '\')">⚡ Згенерувати автоматично (ШІ)</button>' +
-            '</div>' +
-            '<div id="aiStatus" style="margin-top:12px; font-size:14px; font-weight:600; color:var(--primary);"></div>' +
-        '</div>';
+    var qEsc = escapeHtml(query);
+    document.getElementById("resultContainer").innerHTML = `
+        <div class="empty-box">
+            <h3 style="margin-bottom:6px;">Запит «${qEsc}» ще не збережений</h3>
+            <div style="display:flex; gap:10px; justify-content:center; margin-top:14px;">
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('aiStatus').textContent='⏳ Запуск...'; generateWithAI(document.getElementById('smartQuery').value)">⚡ Згенерувати автоматично (ШІ)</button>
+            </div>
+            <div id="aiStatus" style="margin-top:12px; font-size:14px; font-weight:600; color:var(--primary);"></div>
+        </div>
+    `;
 }
 
 async function generateWithAI(query) {
@@ -226,4 +239,17 @@ async function generateWithAI(query) {
 }
 
 function exportDatabase() {
-    var dataStr = "data:text/json;
+    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+    var a = document.createElement("a");
+    a.setAttribute("href", dataStr);
+    a.setAttribute("download", "konspekt_5_klas_data.json");
+    document.body.appendChild(a); a.click(); a.remove();
+}
+
+function escapeHtml(str) { return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+loadData();
+selectBook(selectedBookId);
+</script>
+</body>
+</html>

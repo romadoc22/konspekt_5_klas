@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ШІ-Конспект 5 Клас</title>
+<style>
+    :root { --primary: #4338ca; --primary-hover: #3730a3; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --muted: #64748b; --border: #e2e8f0; --success: #059669; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding-bottom: 40px; }
+    header { background: var(--primary); color: #fff; padding: 16px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+    .header-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+    header h1 { font-size: 20px; font-weight: 700; }
+    header p { font-size: 13px; color: #c7d2fe; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 10px; padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.15s; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-outline { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.35); font-size: 12px; padding: 7px 12px; }
+    .books-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-top: 16px; }
+    .book-card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 12px; text-align: left; cursor: pointer; transition: 0.15s; }
+    .book-card:hover { border-color: #818cf8; }
+    .book-card.active { border-color: var(--primary); background: #eef2ff; box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.15); }
+    .book-subject { font-size: 15px; font-weight: 700; margin: 4px 0; color: var(--text); }
+    .book-authors { font-size: 12px; color: var(--muted); }
+    .workspace { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-top: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+    .search-hero { background: #f1f5f9; padding: 16px; border-radius: 12px; margin-bottom: 16px; }
+    .search-row { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+    .search-input { flex: 1; min-width: 220px; border: 2px solid #cbd5e1; border-radius: 10px; padding: 12px 14px; font-size: 16px; font-weight: 600; }
+    .search-input:focus { outline: none; border-color: var(--primary); }
+    .pills-bar { padding: 10px 0; border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .pill { border: 1px solid var(--border); background: #f8fafc; color: var(--text); padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .pill.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .box { border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-top: 14px; background: #fff; }
+    .box-label { font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+    .tip-box { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; border-radius: 12px; padding: 14px; margin-top: 14px; font-size: 14px; }
+    .empty-box { background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 14px; padding: 24px 16px; text-align: center; margin-top: 16px; }
+    ul.facts-list { padding-left: 18px; }
+    ul.facts-list li { margin-bottom: 6px; }
+    input[type="text"], textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; font-size: 14px; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="container header-row">
+        <div>
+            <h1>⚡ Головне з підручника (5 Клас)</h1>
+            <p>Вводь сторінку, параграф або тему — ШІ сам зробить вижимку</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-outline" onclick="exportDatabase()">💾 Зберегти конспекти</button>
+        </div>
+    </div>
+</header>
+
+<div class="container">
+    <div id="booksGrid" class="books-grid"></div>
+
+    <div class="workspace">
+        <div style="margin-bottom: 12px;">
+            <span id="selectedBookBadge" style="font-size:12px; font-weight:700; color:var(--primary);"></span>
+            <h2 id="selectedBookTitle" style="font-size:18px;"></h2>
+        </div>
+
+        <div class="search-hero">
+            <label style="font-size:13px; font-weight:700; color:#334155;">
+                Введи номер сторінки, параграф (напр. <code>§ 2</code>) чи слово з теми:
+            </label>
+            <div class="search-row">
+                <input type="text" id="smartQuery" class="search-input" placeholder="Наприклад: 12 або § 2 або дроби..." onkeydown="if(event.key==='Enter') runSmartSearch()">
+                <button type="button" class="btn btn-primary" onclick="runSmartSearch()">Показати головне</button>
+            </div>
+        </div>
+
+        <div class="pills-bar">
+            <span style="font-size:12px; color:var(--muted); font-weight:600;">Вже готові:</span>
+            <div id="savedItemsList" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+        </div>
+
+        <div id="resultContainer"></div>
+    </div>
+</div>
+
+<script>
+// =================================================================
+// ⚠️ УВАГА: ВСТАВ СВІЙ КЛЮЧ ТУТ (в лапках)
+const GEMINI_API_KEY = "AQ.Ab8RN6K__oz3sBjI30RQa7BqYrpgl2YaF0AQaGD6ArxC3i6Fiw";
+// =================================================================
+
+var BOOKS = [
+    { id: "hist_2023", subject: "Історія України", title: "Вступ до історії (Щупак, 2023)", icon: "🏛️" },
+    { id: "math_2022", subject: "Математика", title: "Математика 5 клас (Мерзляк, 2022)", icon: "📐" },
+    { id: "ukr_mova_2022", subject: "Українська мова", title: "Українська мова 5 клас (Заболотний, 2022)", icon: "🇺🇦" },
+    { id: "nature_2023", subject: "Пізнаємо природу", title: "Пізнаємо природу 5 клас (Біда, 2023)", icon: "🌿" }
+];
+
+var db = {};
+var selectedBookId = "hist_2023";
+
+function loadData() {
+    try {
+        var saved = localStorage.getItem("school5_v3_db");
+        db = saved ? JSON.parse(saved) : {};
+    } catch (e) { db = {}; }
+}
+
+function saveData() { try { localStorage.setItem("school5_v3_db", JSON.stringify(db)); } catch (e) {} }
+
+function renderBooks() {
+    var grid = document.getElementById("booksGrid");
+    grid.innerHTML = BOOKS.map(function(b) {
+        var active = b.id === selectedBookId ? " active" : "";
+        var count = (db[b.id] || []).length;
+        return '<button type="button" class="book-card' + active + '" onclick="selectBook('' + b.id + '')">' +
+            '<div style="display:flex; justify-content:space-between;"><span>' + b.icon + '</span><span style="font-size:11px; color:var(--muted);">Записів: ' + count + '</span></div>' +
+            '<div class="book-subject">' + b.subject + '</div>' +
+            '<div class="book-authors">' + b.title + '</div>' +
+        '</button>';
+    }).join("");
+}
+
+function selectBook(id) {
+    selectedBookId = id;
+    var book = BOOKS.find(function(b) { return b.id === id; });
+    document.getElementById("selectedBookBadge").textContent = book.icon + " " + book.subject;
+    document.getElementById("selectedBookTitle").textContent = book.title;
+    renderBooks();
+    renderPills();
+    var list = db[id] || [];
+    if (list.length > 0) renderEntry(list[0]);
+    else document.getElementById("resultContainer").innerHTML = '<div class="empty-box">Конспектів ще немає. Введи сторінку або тему вище.</div>';
+}
+
+function renderPills() {
+    var list = db[selectedBookId] || [];
+    var container = document.getElementById("savedItemsList");
+    container.innerHTML = list.map(function(item, idx) {
+        var label = item.para ? ("§" + item.para + " (с." + item.page + ")") : ("Стор. " + item.page);
+        return '<button type="button" class="pill" onclick="selectByIndex(' + idx + ')">' + escapeHtml(label) + '</button>';
+    }).join("");
+}
+
+function selectByIndex(idx) { var item = (db[selectedBookId] || [])[idx]; if (item) renderEntry(item); }
+
+function runSmartSearch() {
+    var raw = document.getElementById("smartQuery").value.trim();
+    if (!raw) return;
+    var q = raw.toLowerCase();
+    var list = db[selectedBookId] || [];
+    var paraMatch = q.match(/(?:§|параграф|п\.?)\s*(\d+)/i);
+    var numMatch = q.match(/^(\d+)$/);
+    var found = null;
+
+    if (paraMatch) { found = list.find(function(item) { return String(item.para) === String(paraMatch[1]); }); } 
+    else if (numMatch) { found = list.find(function(item) { return String(item.page) === String(numMatch[1]) || String(item.para) === String(numMatch[1]); }); } 
+    else { found = list.find(function(item) { return (item.topic && item.topic.toLowerCase().indexOf(q) !== -1) || (item.mainIdea && item.mainIdea.toLowerCase().indexOf(q) !== -1); }); }
+
+    if (found) renderEntry(found); else renderNotFound(raw);
+}
+
+function renderEntry(item) {
+    var facts = (item.keyFacts || []).map(function(f) { return '<li>' + escapeHtml(f) + '</li>'; }).join("");
+    document.getElementById("resultContainer").innerHTML =
+        '<div class="box" style="background:#eef2ff; border-color:#c7d2fe;">' +
+            '<div style="font-size:11px; font-weight:800; color:var(--primary); text-transform:uppercase;">' +
+                (item.para ? 'Параграф §' + escapeHtml(item.para) + ' • ' : '') + 'Сторінка ' + escapeHtml(item.page || '—') +
+            '</div>' +
+            '<div style="font-size:18px; font-weight:700; margin-top:2px;">' + escapeHtml(item.topic) + '</div>' +
+        '</div>' +
+        '<div class="box"><div class="box-label">📌 Головна суть (найважливіше)</div><div style="font-size:16px; font-weight:600;">' + escapeHtml(item.mainIdea) + '</div></div>' +
+        '<div class="box"><div class="box-label">🔑 Ключові факти, правила та дати</div><ul class="facts-list">' + facts + '</ul></div>' +
+        (item.tip ? '<div class="tip-box"><b>💡 Що запитає вчитель:</b> ' + escapeHtml(item.tip) + '</div>' : '');
+}
+
+function renderNotFound(query) {
+    document.getElementById("resultContainer").innerHTML =
+        '<div class="empty-box">' +
+            '<h3 style="margin-bottom:6px;">Запит «' + escapeHtml(query) + '» ще не збережений</h3>' +
+            '<div style="display:flex; gap:10px; justify-content:center; margin-top:14px;">' +
+                '<button type="button" class="btn btn-primary" onclick="generateWithAI('' + escapeHtml(query) + '')">⚡ Згенерувати автоматично (ШІ)</button>' +
+            '</div>' +
+            '<div id="aiStatus" style="margin-top:12px; font-size:14px; font-weight:600; color:var(--primary);"></div>' +
+        '</div>';
+}
+
+async function generateWithAI(query) {
+    if (GEMINI_API_KEY.includes("ТУТ_МАЄ_БУТИ")) {
+        alert("Розробник ще не вставив API ключ у код.");
+        return;
+    }
+    
+    var statusEl = document.getElementById("aiStatus");
+    statusEl.textContent = "⏳ ШІ читає підручник. Це займе кілька секунд...";
+
+    var book = BOOKS.find(function(b) { return b.id === selectedBookId; });
+    var prompt = "Ти репетитор 5 класу. Підручник: " + book.title + ". Учень шукає: '" + query + "'. Поверни СТРОГО JSON об'єкт (без форматування markdown) з полями: page (рядок), para (рядок), topic (рядок), mainIdea (рядок), keyFacts (масив рядків), tip (рядок).";
+
+    try {
+        var resp = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } })
+        });
+        var data = await resp.json();
+        if (data.error) throw new Error(data.error.message || "Помилка API");
+        var text = data.candidates[0].content.parts[0].text;
+        var parsed = JSON.parse(text);
+        
+        if (!db[selectedBookId]) db[selectedBookId] = [];
+        db[selectedBookId].push(parsed);
+        saveData();
+        renderBooks();
+        renderPills();
+        renderEntry(parsed);
+    } catch (err) {
+        statusEl.textContent = "❌ Помилка: " + err.message;
+    }
+}
+
+function exportDatabase() {
+    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+    var a = document.createElement("a");
+    a.setAttribute("href", dataStr);
+    a.setAttribute("download", "konspekt_5_klas_data.json");
+    document.body.appendChild(a); a.click(); a.remove();
+}
+
+function escapeHtml(str) { return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+loadData();
+selectBook(selectedBookId);
+</script>
+</body>
+</html>

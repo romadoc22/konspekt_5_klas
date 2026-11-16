@@ -16,7 +16,6 @@
     .btn { display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 10px; padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.15s; }
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-primary:hover { background: var(--primary-hover); }
-    .btn-success { background: var(--success); color: #fff; }
     .btn-outline { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.35); font-size: 12px; padding: 7px 12px; }
     .books-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-top: 16px; }
     .book-card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 12px; text-align: left; cursor: pointer; transition: 0.15s; }
@@ -38,7 +37,6 @@
     .empty-box { background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 14px; padding: 24px 16px; text-align: center; margin-top: 16px; }
     ul.facts-list { padding-left: 18px; }
     ul.facts-list li { margin-bottom: 6px; }
-    input[type="text"], textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; font-size: 14px; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -86,11 +84,11 @@
 <script>
 // =================================================================
 // ⚠️ УВАГА: ВСТАВ СВІЙ КЛЮЧ ТУТ (в лапках)
-const GEMINI_API_KEY = "AQ.Ab8RN6K__oz3sBjI30RQa7BqYrpgl2YaF0AQaGD6ArxC3i6Fiw";
+const GEMINI_API_KEY = "AIzaSyAmF4PHCoZJHKFd2kcc7bwGHsU-cPJfR4g";
 // =================================================================
 
 var BOOKS = [
-    { id: "hist_2023", subject: "Історія України", title: "Вступ до історії України та громадянської освіти (Щупак, 2023)", icon: "🏛️" },
+    { id: "hist_2023", subject: "Історія України", title: "Вступ до історії (Щупак, 2023)", icon: "🏛️" },
     { id: "math_2022", subject: "Математика", title: "Математика 5 клас (Мерзляк, 2022)", icon: "📐" },
     { id: "ukr_mova_2022", subject: "Українська мова", title: "Українська мова 5 клас (Заболотний, 2022)", icon: "🇺🇦" },
     { id: "ukr_lit_2024", subject: "Українська література", title: "Українська література 5 клас (Архипова, 2024)", icon: "📖" },
@@ -187,7 +185,7 @@ function renderNotFound(query) {
         '<div class="empty-box">' +
             '<h3 style="margin-bottom:6px;">Запит «' + escapeHtml(query) + '» ще не збережений</h3>' +
             '<div style="display:flex; gap:10px; justify-content:center; margin-top:14px;">' +
-                '<button type="button" class="btn btn-primary" onclick="generateWithAI('' + escapeHtml(query) + '')">⚡ Згенерувати автоматично (ШІ)</button>' +
+                '<button type="button" class="btn btn-primary" onclick="generateWithAI(\'' + escapeHtml(query) + '\')">⚡ Згенерувати автоматично (ШІ)</button>' +
             '</div>' +
             '<div id="aiStatus" style="margin-top:12px; font-size:14px; font-weight:600; color:var(--primary);"></div>' +
         '</div>';
@@ -228,17 +226,4 @@ async function generateWithAI(query) {
 }
 
 function exportDatabase() {
-    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
-    var a = document.createElement("a");
-    a.setAttribute("href", dataStr);
-    a.setAttribute("download", "konspekt_5_klas_data.json");
-    document.body.appendChild(a); a.click(); a.remove();
-}
-
-function escapeHtml(str) { return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
-
-loadData();
-selectBook(selectedBookId);
-</script>
-</body>
-</html>
+    var dataStr = "data:text/json;

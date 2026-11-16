@@ -121,7 +121,7 @@ function renderBooks() {
     grid.innerHTML = BOOKS.map(function(b) {
         var active = b.id === selectedBookId ? " active" : "";
         var count = (db[b.id] || []).length;
-        return '<button type="button" class="book-card' + active + '" onclick="selectBook('' + b.id + '')">' +
+        return '<button type="button" class="book-card' + active + '" onclick="selectBook(\'' + b.id + '\')">' +
             '<div style="display:flex; justify-content:space-between;"><span>' + b.icon + '</span><span style="font-size:11px; color:var(--muted);">Записів: ' + count + '</span></div>' +
             '<div class="book-subject">' + b.subject + '</div>' +
             '<div class="book-authors">' + b.title + '</div>' +

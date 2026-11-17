@@ -38,8 +38,6 @@
     ul.facts-list { padding-left: 18px; }
     ul.facts-list li { margin-bottom: 6px; }
 </style>
-<!-- Підключаємо локальну базу текстів -->
-<script src="books_content.js"></script>
 </head>
 <body>
 
@@ -85,7 +83,6 @@
 
 <script>
 // =================================================================
-// ⚠️ Твій ключ від OpenRouter (Виправлено зайву літеру 's')
 const OPENROUTER_API_KEY = "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";
 // =================================================================
 
@@ -170,14 +167,15 @@ function runSmartSearch() {
 
 function renderEntry(item) {
     var facts = (item.keyFacts || []).map(function(f) { return `<li>${escapeHtml(f)}</li>`; }).join("");
-    var paraStr = item.para ? `Параграф §${escapeHtml(item.para)} • ` : '';
-    var pageStr = `Сторінка ${escapeHtml(item.page || '—')}`;
+    var paraStr = item.para && item.para !== "-" ? `Параграф §${escapeHtml(item.para)} • ` : '';
+    var pageStr = item.page && item.page !== "-" ? `Сторінка ${escapeHtml(item.page)}` : '';
+    var headerStr = (paraStr + pageStr) || 'Загальна тема';
     var tipStr = item.tip ? `<div class="tip-box"><b>💡 Що запитає вчитель:</b> ${escapeHtml(item.tip)}</div>` : '';
 
     document.getElementById("resultContainer").innerHTML = `
         <div class="box" style="background:#eef2ff; border-color:#c7d2fe;">
             <div style="font-size:11px; font-weight:800; color:var(--primary); text-transform:uppercase;">
-                ${paraStr}${pageStr}
+                ${headerStr}
             </div>
             <div style="font-size:18px; font-weight:700; margin-top:2px;">${escapeHtml(item.topic)}</div>
         </div>
@@ -208,16 +206,14 @@ function renderNotFound(query) {
 
 async function generateWithAI(query) {
     var statusEl = document.getElementById("aiStatus");
-    statusEl.textContent = "⏳ ШІ читає підручник. Це займе кілька секунд...";
+    statusEl.textContent = "⏳ ШІ генерує конспект. Це займе кілька секунд...";
     statusEl.style.color = "var(--primary)";
 
     var book = BOOKS.find(function(b) { return b.id === selectedBookId; });
-    var bookText = typeof BOOKS_CONTENT !== "undefined" && BOOKS_CONTENT[selectedBookId] ? BOOKS_CONTENT[selectedBookId] : "Текст підручника ще не додано.";
     
-    var prompt = "Ти репетитор 5 класу. Ось текст підручника '" + book.title + "':\n\n" + 
-                 bookText + 
-                 "\n\nУчень шукає: '" + query + "'. " +
-                 "Знайди відповідь У ЦЬОМУ ТЕКСТІ і поверни СТРОГО JSON об'єкт (без форматування markdown) з полями: page (рядок), para (рядок), topic (рядок), mainIdea (рядок), keyFacts (масив рядків), tip (рядок).";
+    var prompt = "Ти репетитор 5 класу (Україна). Учень шукає конспект з підручника '" + book.title + "'. Запит учня: '" + query + "'. " +
+                 "Використовуючи свої знання шкільної програми, склади вижимку. " +
+                 "Поверни СТРОГО JSON об'єкт (без форматування markdown) з полями: page (рядок, якщо запит є числом, інакше '-'), para (рядок, якщо запит вказує на параграф, інакше '-'), topic (рядок, назва теми), mainIdea (рядок, головна думка), keyFacts (масив рядків з фактами/правилами), tip (рядок, можливе запитання вчителя).";
 
     try {
         var resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -236,10 +232,7 @@ async function generateWithAI(query) {
         var data = await resp.json();
         if (data.error) throw new Error(data.error.message || "Помилка API OpenRouter");
         
-        // OpenRouter повертає текст трохи в іншому полі, ніж прямий Google API
         var text = data.choices[0].message.content;
-        
-        // Очищаємо текст від тегів ```json ... ```, які ШІ іноді додає
         text = text.replace(/```json/g, '').replace(/```/g, '').trim();
         var parsed = JSON.parse(text);
 

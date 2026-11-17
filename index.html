@@ -217,7 +217,7 @@ async function generateWithAI(query) {
     var prompt = "Ти репетитор 5 класу. Підручник: " + book.title + ". Учень шукає: '" + query + "'. Поверни СТРОГО JSON об'єкт (без форматування markdown) з полями: page (рядок), para (рядок), topic (рядок), mainIdea (рядок), keyFacts (масив рядків), tip (рядок).";
 
     try {
-        var resp = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY, {
+        var resp = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" + GEMINI_API_KEY, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } })

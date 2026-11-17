@@ -205,10 +205,60 @@ function renderNotFound(query) {
 }
 
 async function generateWithAI(query) {
-    if (GEMINI_API_KEY.includes("ТУТ_МАЄ_БУТИ")) {
-        alert("Розробник ще не вставив API ключ у код.");
-        return;
+    // ВСТАВ СВІЙ КЛЮЧ ВІД OPENROUTER МІЖ ЛАПКАМИ
+    const OPENROUTER_API_KEY = "ssk-or-v1-03c39c8187696dfc69ebf4326f26c7d60e3c7c8d53f746d8e4d628368492f82a"; 
+
+    var statusEl = document.getElementById("aiStatus");
+    statusEl.textContent = "⏳ ШІ читає підручник. Це займе кілька секунд...";
+    statusEl.style.color = "var(--primary)";
+
+    var book = BOOKS.find(function(b) { return b.id === selectedBookId; });
+    var bookText = BOOKS_CONTENT[selectedBookId] || "Текст підручника ще не додано.";
+    
+    var prompt = "Ти репетитор 5 класу. Ось текст підручника '" + book.title + "':\n\n" + 
+                 bookText + 
+                 "\n\nУчень шукає: '" + query + "'. " +
+                 "Знайди відповідь У ЦЬОМУ ТЕКСТІ і поверни СТРОГО JSON об'єкт (без форматування markdown) з полями: page (рядок), para (рядок), topic (рядок), mainIdea (рядок), keyFacts (масив рядків), tip (рядок).";
+
+    try {
+        var resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + OPENROUTER_API_KEY,
+                "HTTP-Referer": "https://romadoc22.github.io", 
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                "model": "google/gemini-1.5-flash",
+                "messages": [{ "role": "user", "content": prompt }]
+            })
+        });
+        
+        var data = await resp.json();
+        if (data.error) throw new Error(data.error.message || "Помилка API OpenRouter");
+        
+        // OpenRouter повертає текст трохи в іншому полі, ніж прямий Google API
+        var text = data.choices[0].message.content;
+        
+        // Очищаємо текст від тегів ```json ... ```, які ШІ іноді додає
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        var parsed = JSON.parse(text);
+
+        if (!db[selectedBookId]) db[selectedBookId] = [];
+        db[selectedBookId].push(parsed);
+        
+        saveData();
+        renderBooks();
+        renderPills();
+        renderEntry(parsed);
+        statusEl.textContent = "";
+
+    } catch (err) {
+        console.error(err);
+        statusEl.textContent = "❌ Помилка: " + err.message;
+        statusEl.style.color = "red";
     }
+}
     
     var statusEl = document.getElementById("aiStatus");
     statusEl.textContent = "⏳ ШІ читає підручник. Це займе кілька секунд...";

@@ -38,6 +38,8 @@
     ul.facts-list { padding-left: 18px; }
     ul.facts-list li { margin-bottom: 6px; }
 </style>
+<!-- Підключаємо локальну базу текстів -->
+<script src="books_content.js"></script>
 </head>
 <body>
 
@@ -83,8 +85,8 @@
 
 <script>
 // =================================================================
-// ⚠️ УВАГА: ВСТАВ СВІЙ КЛЮЧ ТУТ (в лапках)
-const GEMINI_API_KEY = "AQ.Ab8RN6Kcae5mB16yjdfmrsEdVCnVQEVIaDhofsk2U9cPRlujrA";
+// ⚠️ Твій ключ від OpenRouter (Виправлено зайву літеру 's')
+const OPENROUTER_API_KEY = "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";
 // =================================================================
 
 var BOOKS = [
@@ -205,15 +207,12 @@ function renderNotFound(query) {
 }
 
 async function generateWithAI(query) {
-    // ВСТАВ СВІЙ КЛЮЧ ВІД OPENROUTER МІЖ ЛАПКАМИ
-    const OPENROUTER_API_KEY = "ssk-or-v1-03c39c8187696dfc69ebf4326f26c7d60e3c7c8d53f746d8e4d628368492f82a"; 
-
     var statusEl = document.getElementById("aiStatus");
     statusEl.textContent = "⏳ ШІ читає підручник. Це займе кілька секунд...";
     statusEl.style.color = "var(--primary)";
 
     var book = BOOKS.find(function(b) { return b.id === selectedBookId; });
-    var bookText = BOOKS_CONTENT[selectedBookId] || "Текст підручника ще не додано.";
+    var bookText = typeof BOOKS_CONTENT !== "undefined" && BOOKS_CONTENT[selectedBookId] ? BOOKS_CONTENT[selectedBookId] : "Текст підручника ще не додано.";
     
     var prompt = "Ти репетитор 5 класу. Ось текст підручника '" + book.title + "':\n\n" + 
                  bookText + 
@@ -259,34 +258,6 @@ async function generateWithAI(query) {
         statusEl.style.color = "red";
     }
 }
-    
-    var statusEl = document.getElementById("aiStatus");
-    statusEl.textContent = "⏳ ШІ читає підручник. Це займе кілька секунд...";
-
-    var book = BOOKS.find(function(b) { return b.id === selectedBookId; });
-    var prompt = "Ти репетитор 5 класу. Підручник: " + book.title + ". Учень шукає: '" + query + "'. Поверни СТРОГО JSON об'єкт (без форматування markdown) з полями: page (рядок), para (рядок), topic (рядок), mainIdea (рядок), keyFacts (масив рядків), tip (рядок).";
-
-    try {
-        var resp = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" + GEMINI_API_KEY, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } })
-        });
-        var data = await resp.json();
-        if (data.error) throw new Error(data.error.message || "Помилка API");
-        var text = data.candidates[0].content.parts[0].text;
-        var parsed = JSON.parse(text);
-        
-        if (!db[selectedBookId]) db[selectedBookId] = [];
-        db[selectedBookId].push(parsed);
-        saveData();
-        renderBooks();
-        renderPills();
-        renderEntry(parsed);
-    } catch (err) {
-        statusEl.textContent = "❌ Помилка: " + err.message;
-    }
-}
 
 function exportDatabase() {
     var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
@@ -296,7 +267,7 @@ function exportDatabase() {
     document.body.appendChild(a); a.click(); a.remove();
 }
 
-function escapeHtml(str) { return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+function escapeHtml(str) { return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;"); }
 
 loadData();
 selectBook(selectedBookId);

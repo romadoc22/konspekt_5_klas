@@ -226,7 +226,8 @@ async function generateWithAI(query) {
             },
             body: JSON.stringify({
                 "model": "google/gemini-3.5-flash-lite",
-                "messages": [{ "role": "user", "content": prompt }]
+                "messages": [{ "role": "user", "content": prompt }],
+                "max_tokens": 1500
             })
         });
         

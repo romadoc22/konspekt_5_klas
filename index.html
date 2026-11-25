@@ -13,7 +13,7 @@
     .header-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
     header h1 { font-size: 20px; font-weight: 700; }
     header p { font-size: 13px; color: #c7d2fe; }
-    .btn { display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 10px; padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.15s; text-decoration: none; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: none; border-radius: 10px; padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.15s; text-decoration: none; }
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-primary:hover { background: var(--primary-hover); }
     .btn-outline { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.35); font-size: 12px; padding: 7px 12px; }
@@ -39,6 +39,20 @@
     .empty-box { background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 14px; padding: 24px 16px; text-align: center; margin-top: 16px; }
     ul.facts-list { padding-left: 18px; }
     ul.facts-list li { margin-bottom: 6px; }
+
+    /* Модальне вікно підтримки */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+    .modal-overlay.open { display: flex; }
+    .modal-card { background: #fff; border-radius: 16px; max-width: 440px; width: 100%; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); text-align: center; }
+    .modal-title { font-size: 19px; font-weight: 800; margin-bottom: 10px; color: var(--text); }
+    .modal-text { font-size: 14px; color: #334155; margin-bottom: 12px; line-height: 1.55; }
+    .modal-note { font-size: 13px; color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 10px 12px; margin-bottom: 18px; }
+    .modal-actions { display: flex; flex-direction: column; gap: 10px; }
+    .btn-donate-lg { background: #000; color: #fff; padding: 13px 18px; font-size: 15px; border-radius: 12px; width: 100%; }
+    .btn-donate-lg:hover { background: #222; }
+    .btn-skip { background: transparent; color: var(--muted); font-size: 13px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; width: 100%; }
+    .btn-skip:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-skip:not(:disabled):hover { background: #f1f5f9; color: var(--text); }
 </style>
 </head>
 <body>
@@ -51,7 +65,7 @@
         </div>
         <div style="display: flex; align-items: center;">
             <button type="button" class="btn btn-outline" onclick="exportDatabase()">💾 Зберегти конспекти</button>
-            <a href="https://send.monobank.ua/jar/8xBp7dhG8G" target="_blank" class="btn btn-donate">🐈 Підтримати проект</a>
+            <a href="https://send.monobank.ua/jar/8xBp7dhG8G" target="_blank" class="btn btn-donate">🐈 Підтримати проєкт</a>
         </div>
     </div>
 </header>
@@ -84,29 +98,274 @@
     </div>
 </div>
 
+<!-- Модальне вікно підтримки проєкту -->
+<div id="donateModal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-title">⚡ Підтримай роботу сервісу</div>
+        <p class="modal-text">
+            Ти вже згенерував(ла) <b id="modalGenCount">3</b> конспекти. Сервіс працює на платному ШІ — кожен запит коштує грошей, тому <b>проєкт живе за рахунок учнів-користувачів та їх батьків</b>.
+        </p>
+        <div class="modal-note">
+            💡 20–50 грн вистачить приблизно на 150 нових конспектів. Донати добровільні — усі кошти йдуть на оплату ШІ. Якщо ти учень, покажи це вікно батькам.
+        </div>
+        <div class="modal-actions">
+            <a href="https://send.monobank.ua/jar/8xBp7dhG8G" target="_blank" class="btn btn-donate-lg" onclick="onDonateClicked()">🐈 Підтримати на Банку (20–50 грн)</a>
+            <button type="button" id="skipDonateBtn" class="btn btn-skip" disabled onclick="continueAfterModal()">Продовжити безкоштовно (5 с)</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // =================================================================
-// Ключ розрізано навпіл, щоб боти GitHub його не знайшли і не видалили
-const OPENROUTER_API_KEY = "sk-or-v1-" + "cd0c7a16a6bab1f3d4ded37014eae735aa319015ea7503ba3904f99a7434d7b5";
+// Запити йдуть через захищений Cloudflare Worker (ключ сховано на сервері)
+const WORKER_URL = "https://konspekt-api.romtkachuk.workers.dev";
 // =================================================================
 
 var BOOKS = [
-    { id: "hist_2023", subject: "Історія України", title: "Вступ до історії (Щупак, 2023)", icon: "🏛️" },
-    { id: "math_2022", subject: "Математика", title: "Математика 5 клас (Мерзляк, 2022)", icon: "📐" },
-    { id: "ukr_mova_2022", subject: "Українська мова", title: "Українська мова 5 клас (Заболотний, 2022)", icon: "🇺🇦" },
-    { id: "ukr_lit_2024", subject: "Українська література", title: "Українська література 5 клас (Архипова, 2024)", icon: "📖" },
-    { id: "zarub_2024", subject: "Зарубіжна література", title: "Зарубіжна література 5 клас (Ніколенко, 2024)", icon: "🌍" },
-    { id: "nature_2023", subject: "Пізнаємо природу", title: "Пізнаємо природу 5 клас (Біда, 2023)", icon: "🌿" },
-    { id: "eng_sb", subject: "Англійська (SB)", title: "ALL CLEAR Student's Book 5 клас", icon: "🇬🇧" },
-    { id: "eng_wb", subject: "Англійська (WB)", title: "ALL CLEAR Workbook 5 клас", icon: "📝" },
+    { id: "hist_2023", subject: "Історія України", title: "Історія України 5 клас (Ігор Щупак, Олена Бурлака, Ірина Піскарьова, Андрій Посунько, 2023)", icon: "🏛️" },
+    { id: "math_2022", subject: "Математика", title: "Математика 5 клас (Аркадій Мерзляк, Віталій Полонський, Михайло Якір, 2022)", icon: "📐" },
+    { id: "ukr_mova_2022", subject: "Українська мова", title: "Українська мова 5 клас (Олександр Заболотний, Віктор Заболотний, 2022)", icon: "🇺🇦" },
+    { id: "ukr_lit_2024", subject: "Українська література", title: "Українська література 5 клас (Валентина Архипова, Світлана Січкар, Світлана Шило, 2024)", icon: "📖" },
+    { id: "zarub_2024", subject: "Зарубіжна література", title: "Зарубіжна література 5 клас (Ольга Ніколенко, Наталія Рудніцька, Лідія Мацевко-Бекерська, 2024)", icon: "🌍" },
+    { id: "nature_2023", subject: "Пізнаємо природу", title: "Пізнаємо природу 5 клас (Дарія Біда, Тетяна Гільберг, Ярина Колісник, 2023)", icon: "🌿" },
+    { id: "eng_sb", subject: "Англійська (Підручник)", title: "ALL CLEAR Student's Book 5 клас (підручник)", icon: "🇬🇧" },
+    { id: "eng_wb", subject: "Англійська (Зошит)", title: "ALL CLEAR Workbook 5 клас (робочий зошит)", icon: "📝" },
     { id: "informatics", subject: "Інформатика", title: "Інформатика 5 клас (Ривкінд, 2022)", icon: "💻" },
     { id: "art", subject: "Мистецтво", title: "Мистецтво 5 клас (Масол, 2022)", icon: "🎨" },
     { id: "technology", subject: "Технології", title: "Технології 5 клас", icon: "🔧" },
     { id: "health", subject: "Здоров'я, безпека та добробут", title: "Здоров'я, безпека та добробут 5 клас", icon: "🩹" }
 ];
 
+// Зміст підручників (початкова сторінка -> точна тема)
+var BOOK_TOC = {
+    "ukr_lit_2024": {
+        maxPage: 237,
+        items: [
+            { page: 4, title: "Любий п'ятикласнику, люба п'ятикласнице!" },
+            { page: 6, title: "Вступ. Художня література як мистецтво слова" },
+            { page: 12, title: "Розділ 1. Мистецький спадок нащадкам" },
+            { page: 13, title: "Тема 1. Невичерпні джерела мудрості" },
+            { page: 14, title: "Міфи та легенди" },
+            { page: 15, title: "Міф «Берегиня»" },
+            { page: 19, title: "Легенда «Про Зоряний Віз»" },
+            { page: 21, title: "Легенда «Неопалима купина»" },
+            { page: 23, title: "Легенда «Як виникли Карпати»" },
+            { page: 26, title: "Легенда «Чому пес живе коло людини?»" },
+            { page: 29, title: "Народні перекази" },
+            { page: 30, title: "Народний переказ «Прийом у запорожці»" },
+            { page: 32, title: "Народний переказ «Як Сірко переміг татар»" },
+            { page: 33, title: "Народний переказ «Про запорожців»" },
+            { page: 36, title: "Прислів'я та приказки" },
+            { page: 40, title: "Загадки" },
+            { page: 44, title: "Віршовані загадки. «Химерний, маленький» (Леонід Глібов)" },
+            { page: 45, title: "Віршована загадка «Хто сестра і брат?» (Леонід Глібов)" },
+            { page: 46, title: "Віршовані загадки «Що за птиця?», «Хто розмовляє?», «Хто вона?» (Леонід Глібов)" },
+            { page: 47, title: "Леонід Глібов (біографія та творчість)" },
+            { page: 49, title: "Тема 2. Велике диво казки" },
+            { page: 50, title: "Народні казки" },
+            { page: 52, title: "Народна казка «Як їжак і заєць бігали наввипередки»" },
+            { page: 54, title: "Народна казка «Цар Лев»" },
+            { page: 59, title: "Народна казка «Мудра дівчина»" },
+            { page: 65, title: "Народна казка «Ох»" },
+            { page: 77, title: "Літературні казки" },
+            { page: 80, title: "Казка «Фарбований лис» (Іван Франко)" },
+            { page: 86, title: "Іван Франко (біографія та творчість)" },
+            { page: 89, title: "Казка «Мавка-вербинка» (Василь Королів-Старий)" },
+            { page: 98, title: "Василь Королів-Старий (біографія та творчість)" },
+            { page: 100, title: "Віршовані казки" },
+            { page: 101, title: "Віршована казка «Цар Плаксій і Лоскотон» (Василь Симоненко)" },
+            { page: 105, title: "Василь Симоненко (біографія та творчість)" },
+            { page: 107, title: "Казки-п'єси" },
+            { page: 108, title: "Казка-п'єса «Микита Кожум'яка» (Олександр Олесь)" },
+            { page: 122, title: "Олександр Олесь (біографія та творчість)" },
+            { page: 124, title: "Розділ 2. Малює світ поезія" },
+            { page: 125, title: "Тема 3. Музика поетичного слова" },
+            { page: 126, title: "Ліричний твір" },
+            { page: 127, title: "Вірш «За сонцем хмаронька пливе...» (Тарас Шевченко)" },
+            { page: 128, title: "Вірш «Над Дніпровою сагою» (Тарас Шевченко)" },
+            { page: 129, title: "Тарас Шевченко (біографія та творчість)" },
+            { page: 132, title: "Вірш «Не бував ти у наших краях!» (Павло Тичина)" },
+            { page: 133, title: "Вірш «Блакить мою душу обвіяла...» (Павло Тичина)" },
+            { page: 134, title: "Павло Тичина (біографія та творчість)" },
+            { page: 136, title: "Вірші «Чарівники» та «Зірка» (Євген Гуцало)" },
+            { page: 137, title: "Вірш «Журавлі високі пролітають...» (Євген Гуцало)" },
+            { page: 138, title: "Євген Гуцало (біографія та творчість)" },
+            { page: 140, title: "Вірші «Дощ» та «Осінь-маляр із палітрою пишною...» (Максим Рильський)" },
+            { page: 141, title: "Максим Рильський (біографія та творчість)" },
+            { page: 143, title: "Вірш «Бабунин дощ» (Микола Вінграновський)" },
+            { page: 144, title: "Вірш «Сама собою річка ця тече...» (Микола Вінграновський)" },
+            { page: 145, title: "Микола Вінграновський (біографія та творчість)" },
+            { page: 148, title: "Розділ 3. Від казки до книги буття" },
+            { page: 149, title: "Тема 4. Книжка вчить, як у світі жить" },
+            { page: 150, title: "Літописи" },
+            { page: 151, title: "Літописне оповідання «Три брати — Кий, Щек, Хорив і сестра їхня Либідь»" },
+            { page: 154, title: "Літописне оповідання «Святослав укладає мир з греками і повертається до Києва. Смерть Святослава»" },
+            { page: 157, title: "Літописне оповідання «Розгром Ярославом печенігів. Початок великого будівництва в Києві. Похвала книгам»" },
+            { page: 161, title: "«Княжа Україна» (скорочено) (Олександр Олесь)" },
+            { page: 168, title: "«Запорожці» (скорочено) (Іван Нечуй-Левицький)" },
+            { page: 178, title: "Іван Нечуй-Левицький (біографія та творчість)" },
+            { page: 181, title: "Оповідання. «Лось» (Євген Гуцало)" },
+            { page: 192, title: "Оповідання «Федько-халамидник» (скорочено) (Володимир Винниченко)" },
+            { page: 204, title: "Володимир Винниченко (біографія та творчість)" },
+            { page: 206, title: "Оповідання «Дивак» (скорочено) (Григір Тютюнник)" },
+            { page: 212, title: "Григір Тютюнник (біографія та творчість)" },
+            { page: 214, title: "Повість (поняття про жанр)" },
+            { page: 215, title: "Повість «Незвичайні пригоди Алі в країні Недоладії» (скорочено) (Галина Малик)" },
+            { page: 220, title: "Галина Малик (біографія та творчість)" },
+            { page: 222, title: "Повість «Чарівний талісман» (скорочено) (Всеволод Нестайко)" },
+            { page: 229, title: "Всеволод Нестайко (біографія та творчість)" },
+            { page: 231, title: "Біографічна та автобіографічна література" },
+            { page: 232, title: "Текст зі ЗМІ. «Відходи в доходи, або вчимося в Японії та Швеції» (Л. Назаренко)" },
+            { page: 235, title: "Шанувальникам цікавих книжок" },
+            { page: 236, title: "Словник літературознавчих термінів" }
+        ]
+    },
+    "zarub_2024": {
+        maxPage: 271,
+        items: [
+            { page: 3, title: "У колі друзів Полліанни" },
+            { page: 4, title: "Як працювати з підручником" },
+            { page: 7, title: "Вступ. Роль книжки в третьому тисячолітті" },
+            { page: 13, title: "Розділ 1. Скарбниця народних казок. Казки народів світу: різновиди та ознаки" },
+            { page: 20, title: "Японська народна казка" },
+            { page: 23, title: "Японська народна казка «Момотаро, або Хлопчик-Персик»" },
+            { page: 29, title: "Якоб і Вільгельм Грімм (біографія та творчість)" },
+            { page: 34, title: "Казка «Пані Метелиця» (Якоб і Вільгельм Грімм)" },
+            { page: 41, title: "Розділ 2. Літературні казки світу. Літературна казка" },
+            { page: 47, title: "Ганс-Крістіан Андерсен (біографія та творчість)" },
+            { page: 52, title: "Казка «Снігова Королева» (Ганс-Крістіан Андерсен)" },
+            { page: 73, title: "Оскар Вайлд (біографія та творчість)" },
+            { page: 77, title: "Казка «Хлопчик-Зірка» (Оскар Вайлд)" },
+            { page: 97, title: "Роальд Дал (біографія та творчість)" },
+            { page: 100, title: "Повість-казка «Чарлі і шоколадна фабрика» (Роальд Дал)" },
+            { page: 121, title: "Розділ 3. Слухаємо голоси природи. Джон Кітс (біографія та творчість)" },
+            { page: 124, title: "Вірш «Про коника та цвіркуна» (Джон Кітс)" },
+            { page: 127, title: "Джозеф-Редьярд Кіплінг (біографія та творчість)" },
+            { page: 130, title: "«Мауглі» (Джозеф-Редьярд Кіплінг)" },
+            { page: 159, title: "Ернест Сетон-Томпсон (біографія та творчість)" },
+            { page: 162, title: "Оповідання «Лобо — володар Курумпо» (Ернест Сетон-Томпсон)" },
+            { page: 176, title: "Розділ 4. Сила творчої уяви. Ернст-Теодор-Амадей Гофман (біографія та творчість)" },
+            { page: 179, title: "Казка «Лускунчик і Мишачий король» (Ернст-Теодор-Амадей Гофман)" },
+            { page: 200, title: "Елеонор Портер (біографія та творчість)" },
+            { page: 203, title: "Роман «Полліанна» (Елеонор Портер)" },
+            { page: 227, title: "Розділ 5. У вирі захопливих пригод. Марк Твен (біографія та творчість)" },
+            { page: 231, title: "Роман «Пригоди Тома Соєра» (Марк Твен)" },
+            { page: 243, title: "Туве Янсон (біографія та творчість)" },
+            { page: 246, title: "Повість-казка «Комета прилітає» (Туве Янсон)" },
+            { page: 268, title: "Що прочитати влітку?" }
+        ]
+    },
+    "nature_2023": {
+        maxPage: 253,
+        items: [
+            { page: 3, title: "Любі п'ятикласники і п'ятикласниці" },
+            { page: 4, para: "1", title: "§ 1. Як наука змінює світ" },
+            { page: 9, para: "2", title: "§ 2. Як стати винахідником" },
+            { page: 14, para: "3", title: "§ 3. Як шукати відповіді на запитання" },
+            { page: 18, para: "4", title: "§ 4. Що таке фізичні величини та як їх вимірювати" },
+            { page: 23, para: "5", title: "§ 5. Практична робота «Змішування води та вимірювання температури»" },
+            { page: 24, para: "6", title: "§ 6. Узагальнення до розділу 1 (Пізнаємо світ науки)" },
+            { page: 25, para: "7", title: "§ 7. Що нас оточує" },
+            { page: 30, para: "8", title: "§ 8. Із чого все складається" },
+            { page: 34, para: "9", title: "§ 9. Які властивості твердих тіл" },
+            { page: 39, para: "10", title: "§ 10. Які властивості рідин" },
+            { page: 43, para: "11", title: "§ 11. Чому вода — найдивовижніша рідина на Землі" },
+            { page: 48, para: "12", title: "§ 12. Які властивості газів" },
+            { page: 52, para: "13", title: "§ 13. Практична робота «Спостереження явищ дифузії та випаровування»" },
+            { page: 53, para: "14", title: "§ 14. Як виміряти масу" },
+            { page: 57, para: "15", title: "§ 15. Що таке розчинні та нерозчинні речовини" },
+            { page: 62, para: "16", title: "§ 16. Практична робота «Досліджуємо розчинність деяких речовин»" },
+            { page: 63, para: "17", title: "§ 17. Скільки є речовин" },
+            { page: 67, para: "18", title: "§ 18. Узагальнення до розділу 2 (Пізнаємо будову речовин)" },
+            { page: 68, para: "19", title: "§ 19. Як виникла Земля" },
+            { page: 71, para: "20", title: "§ 20. Яку будову має Земля" },
+            { page: 75, para: "21", title: "§ 21. Як утворюються гірські породи" },
+            { page: 80, para: "22", title: "§ 22. Яку форму і розміри має Земля" },
+            { page: 83, para: "23", title: "§ 23. Які є способи зображення Землі" },
+            { page: 87, para: "24", title: "§ 24. Про що розповідають географічні карти" },
+            { page: 91, para: "25", title: "§ 25. Які бувають масштаби та як за їхньою допомогою виміряти відстані на карті й місцевості" },
+            { page: 95, para: "26", title: "§ 26. Практична робота «Як здійснити окомірну зйомку місцевості і скласти план місцевості»" },
+            { page: 97, para: "27", title: "§ 27. Що охоплює суходіл Землі" },
+            { page: 101, para: "28", title: "§ 28. Які бувають форми поверхні суходолу Землі" },
+            { page: 105, para: "29", title: "§ 29. Які особливості рельєфу України" },
+            { page: 109, para: "30", title: "§ 30. Де міститься вода на Землі" },
+            { page: 112, para: "31", title: "§ 31. Як досліджують океани" },
+            { page: 116, para: "32", title: "§ 32. Які об'єкти належать до вод суходолу" },
+            { page: 120, para: "33", title: "§ 33. Яке значення води на Землі" },
+            { page: 125, para: "34", title: "§ 34. Які властивості має повітря" },
+            { page: 129, para: "35", title: "§ 35. Якою буває погода" },
+            { page: 133, para: "36", title: "§ 36. Чи міститься повітря у ґрунті. Які є небезпечні природні явища" },
+            { page: 138, para: "37", title: "§ 37. У чому унікальність планети Земля" },
+            { page: 141, para: "38", title: "§ 38. Узагальнення до розділу 3 (Пізнаємо природу Землі)" },
+            { page: 142, para: "39", title: "§ 39. Які особливості будови різних груп організмів" },
+            { page: 147, para: "40", title: "§ 40. Як живуть і чим відрізняються клітини різних організмів" },
+            { page: 152, para: "41", title: "§ 41. Хто такі бактерії та чим особливі віруси" },
+            { page: 157, para: "42", title: "§ 42. Яке значення бактерій і вірусів у природі й для людини" },
+            { page: 160, para: "43", title: "§ 43. Які органи у квіткової рослини" },
+            { page: 164, para: "44", title: "§ 44. Водорості та спорові рослини: хто у воді, а хто на суходолі" },
+            { page: 171, para: "45", title: "§ 45. Що об'єднує і відрізняє голонасінні та покритонасінні рослини" },
+            { page: 175, para: "46", title: "§ 46. Пристосування до життя та різноманітність рослин" },
+            { page: 180, para: "47", title: "§ 47. Наскільки різноманітними є гриби та лишайники і яке їхнє значення" },
+            { page: 185, para: "48", title: "§ 48. Хто такі безхребетні тварини" },
+            { page: 188, para: "49", title: "§ 49. Які таємниці приховують хребетні тварини" },
+            { page: 191, para: "50", title: "§ 50. Як доглядати за домашніми тваринами" },
+            { page: 195, para: "51", title: "§ 51. Чим ми завдячуємо тваринам" },
+            { page: 199, para: "52", title: "§ 52. Узагальнення до розділу 4. Клітини, бактерії, віруси, гриби, рослини і тварини" },
+            { page: 200, para: "53", title: "§ 53. Звідки наш організм бере енергію та будівельний матеріал" },
+            { page: 205, para: "54", title: "§ 54. Як кисень потрапляє у наш організм" },
+            { page: 209, para: "55", title: "§ 55. Як рухається кисень і поживні речовини в нашому організмі" },
+            { page: 213, para: "56", title: "§ 56. Захист нашого тіла ззовні і всередині" },
+            { page: 217, para: "57", title: "§ 57. Як виділяються непотрібні речовини з організму людини" },
+            { page: 220, para: "58", title: "§ 58. Хто керує процесами в нашому тілі" },
+            { page: 225, para: "59", title: "§ 59. Як працюють органи чуття" },
+            { page: 230, para: "60", title: "§ 60. Узагальнення до розділу 4. Організм людини" },
+            { page: 231, para: "61", title: "§ 61. Які секрети здоров'я" },
+            { page: 235, para: "62", title: "§ 62. Опорна вісь нашого тіла" },
+            { page: 240, para: "63", title: "§ 63. Як режим дня, сон та емоції впливають на здоров'я" },
+            { page: 244, para: "64", title: "§ 64. Природні скарби України" },
+            { page: 249, para: "65", title: "§ 65. Як природа нас надихає" },
+            { page: 252, para: "66", title: "§ 66. Узагальнення до розділу 5 (Пізнаємо себе і світ)" }
+        ]
+    },
+    "hist_2023": {
+        maxPage: 114,
+        items: [
+            { page: 7, para: "1", title: "§ 1. Історія — пам'ять про минуле" },
+            { page: 12, para: "2", title: "§ 2. Історія — наука про розвиток людства" },
+            { page: 19, para: "3", title: "§ 3. Джерела історичної інформації" },
+            { page: 27, para: "4", title: "§ 4. Науки-помічниці історії" },
+            { page: 32, para: "5", title: "§ 5. Археологічні скарби минулого" },
+            { page: 40, para: "6", title: "§ 6. Писемні пам'ятки, фольклор і сучасні візуальні джерела про історію" },
+            { page: 47, para: "7", title: "§ 7. Урок узагальнення «Науки, що вивчають минуле»" },
+            { page: 49, para: "8", title: "§ 8. Час в уявленнях людини протягом історії" },
+            { page: 55, para: "9", title: "§ 9. Розвиток систем літочислення" },
+            { page: 59, para: "10-11", title: "§ 10–11. Способи упорядкування історичного часу" },
+            { page: 67, para: "12", title: "§ 12. Як пов'язані історія і простір" },
+            { page: 73, para: "13", title: "§ 13. Українські землі на картах упродовж історії" },
+            { page: 82, para: "14", title: "§ 14. Урок узагальнення «Історичний час і простір»" },
+            { page: 84, para: "15", title: "§ 15. Як народжувалась історична наука" },
+            { page: 92, para: "16", title: "§ 16. Науковий період розвитку історичних досліджень" },
+            { page: 97, para: "17", title: "§ 17. Хто започаткував наукові дослідження історії України" },
+            { page: 102, para: "18", title: "§ 18. Міфи в історії" },
+            { page: 108, para: "19", title: "§ 19. Історична пам'ять. Формування історичної пам'яті. Культура пам'яті" }
+        ]
+    }
+};
+
 var db = {};
 var selectedBookId = "hist_2023";
+var pendingQuery = null;
+var skipTimer = null;
+
+function getGenCount() {
+    try { return parseInt(localStorage.getItem("school5_gen_count") || "0", 10) || 0; }
+    catch (e) { return 0; }
+}
+
+function incGenCount() {
+    try { localStorage.setItem("school5_gen_count", String(getGenCount() + 1)); }
+    catch (e) {}
+}
 
 function loadData() {
     try {
@@ -116,6 +375,41 @@ function loadData() {
 }
 
 function saveData() { try { localStorage.setItem("school5_v3_db", JSON.stringify(db)); } catch (e) {} }
+
+function findTopicInTOC(bookId, query) {
+    var tocData = BOOK_TOC[bookId];
+    if (!tocData || !tocData.items || tocData.items.length === 0) return null;
+
+    var raw = String(query).trim();
+    var paraMatch = raw.match(/(?:§|параграф|п\.?)\s*(\d+)/i);
+    if (paraMatch) {
+        var targetPara = paraMatch[1];
+        for (var j = 0; j < tocData.items.length; j++) {
+            var p = tocData.items[j].para;
+            if (!p) continue;
+            if (p === targetPara || p.split("-").indexOf(targetPara) !== -1) {
+                return tocData.items[j];
+            }
+        }
+        return null;
+    }
+
+    var numMatch = raw.match(/^(\d+)$/);
+    if (!numMatch) return null;
+
+    var pageNum = parseInt(numMatch[1], 10);
+    if (tocData.maxPage && pageNum > tocData.maxPage) return null;
+
+    var matched = null;
+    for (var i = 0; i < tocData.items.length; i++) {
+        if (tocData.items[i].page <= pageNum) {
+            matched = tocData.items[i];
+        } else {
+            break;
+        }
+    }
+    return matched;
+}
 
 function renderBooks() {
     var grid = document.getElementById("booksGrid");
@@ -146,7 +440,7 @@ function renderPills() {
     var list = db[selectedBookId] || [];
     var container = document.getElementById("savedItemsList");
     container.innerHTML = list.map(function(item, idx) {
-        var label = item.para ? ("§" + item.para + " (с." + item.page + ")") : ("Стор. " + item.page);
+        var label = item.para && item.para !== "-" ? ("§" + item.para + " (с." + item.page + ")") : ("Стор. " + item.page);
         return `<button type="button" class="pill" onclick="selectByIndex(${idx})">${escapeHtml(label)}</button>`;
     }).join("");
 }
@@ -197,40 +491,100 @@ function renderEntry(item) {
 
 function renderNotFound(query) {
     var qEsc = escapeHtml(query);
+    var tocHit = findTopicInTOC(selectedBookId, query);
+    var hintHtml = tocHit
+        ? `<p style="font-size:13px; color:#059669; font-weight:600; margin-bottom:8px;">📖 За змістом підручника: ${escapeHtml(tocHit.title)}</p>`
+        : '';
+
     document.getElementById("resultContainer").innerHTML = `
         <div class="empty-box">
             <h3 style="margin-bottom:6px;">Запит «${qEsc}» ще не збережений</h3>
+            ${hintHtml}
             <div style="display:flex; gap:10px; justify-content:center; margin-top:14px;">
-                <button type="button" class="btn btn-primary" onclick="document.getElementById('aiStatus').textContent='⏳ Запуск...'; generateWithAI(document.getElementById('smartQuery').value)">⚡ Згенерувати автоматично (ШІ)</button>
+                <button type="button" class="btn btn-primary" onclick="requestGenerate(document.getElementById('smartQuery').value)">⚡ Згенерувати автоматично (ШІ)</button>
             </div>
             <div id="aiStatus" style="margin-top:12px; font-size:14px; font-weight:600; color:var(--primary);"></div>
         </div>
     `;
 }
 
+function requestGenerate(query) {
+    var count = getGenCount();
+    // Показуємо вікно після 3-ї генерації, а далі кожні 5 генерацій (на 4-й, 9-й, 14-й...)
+    if (count >= 3 && (count - 3) % 5 === 0) {
+        pendingQuery = query;
+        openDonateModal(count);
+    } else {
+        generateWithAI(query);
+    }
+}
+
+function openDonateModal(count) {
+    document.getElementById("modalGenCount").textContent = count;
+    var modal = document.getElementById("donateModal");
+    var skipBtn = document.getElementById("skipDonateBtn");
+    modal.classList.add("open");
+
+    if (skipTimer) clearInterval(skipTimer);
+    var secondsLeft = 5;
+    skipBtn.disabled = true;
+    skipBtn.textContent = "Продовжити безкоштовно (" + secondsLeft + " с)";
+
+    skipTimer = setInterval(function() {
+        secondsLeft--;
+        if (secondsLeft <= 0) {
+            clearInterval(skipTimer);
+            skipTimer = null;
+            skipBtn.disabled = false;
+            skipBtn.textContent = "Продовжити безкоштовно";
+        } else {
+            skipBtn.textContent = "Продовжити безкоштовно (" + secondsLeft + " с)";
+        }
+    }, 1000);
+}
+
+function onDonateClicked() {
+    if (skipTimer) { clearInterval(skipTimer); skipTimer = null; }
+    var skipBtn = document.getElementById("skipDonateBtn");
+    skipBtn.disabled = false;
+    skipBtn.textContent = "Продовжити до конспекту";
+}
+
+function continueAfterModal() {
+    if (skipTimer) { clearInterval(skipTimer); skipTimer = null; }
+    document.getElementById("donateModal").classList.remove("open");
+    if (pendingQuery !== null) {
+        var q = pendingQuery;
+        pendingQuery = null;
+        generateWithAI(q);
+    }
+}
+
 async function generateWithAI(query) {
     var statusEl = document.getElementById("aiStatus");
-    statusEl.textContent = "⏳ ШІ генерує конспект. Це займе кілька секунд...";
-    statusEl.style.color = "var(--primary)";
+    if (statusEl) {
+        statusEl.textContent = "⏳ ШІ генерує конспект. Це займе кілька секунд...";
+        statusEl.style.color = "var(--primary)";
+    }
 
     var book = BOOKS.find(function(b) { return b.id === selectedBookId; });
+    var tocHit = findTopicInTOC(selectedBookId, query);
+    var searchContext = tocHit
+        ? "запит '" + query + "', точна тема за змістом підручника: '" + tocHit.title + "' (починається на стор. " + tocHit.page + ")"
+        : "'" + query + "'";
     
-    var prompt = "Ти репетитор 5 класу (Україна). Учень шукає конспект з підручника '" + book.title + "'. Запит учня: '" + query + "'. " +
-                 "Використовуючи свої знання шкільної програми, склади вижимку. " +
-                 "Поверни СТРОГО JSON об'єкт (без форматування markdown) з полями: page (рядок, якщо запит є числом, інакше '-'), para (рядок, якщо запит вказує на параграф, інакше '-'), topic (рядок, назва теми), mainIdea (рядок, головна думка), keyFacts (масив рядків з фактами/правилами), tip (рядок, можливе запитання вчителя).";
+    var prompt = "Ти репетитор 5 класу (Україна). Учень шукає конспект з підручника '" + book.title + "'. Запит учня: " + searchContext + ". " +
+                 "Використовуючи свої знання шкільної програми, склади вижимку строго за цією темою. " +
+                 "Поверни СТРОГО JSON об'єкт (без форматування markdown) з полями: page (рядок, якщо запит є числом, інакше '-'), para (рядок, якщо запит вказує на параграф або він є в назві теми, інакше '-'), topic (рядок, назва теми), mainIdea (рядок, головна думка), keyFacts (масив рядків з фактами/правилами), tip (рядок, можливе запитання вчителя).";
 
     try {
-        var resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        var resp = await fetch(WORKER_URL, {
             method: "POST",
             headers: {
-                "Authorization": "Bearer " + OPENROUTER_API_KEY,
-                "HTTP-Referer": "https://romadoc22.github.io", 
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                "model": "google/gemini-3.5-flash-lite",
-                "messages": [{ "role": "user", "content": prompt }],
-                "max_tokens": 1500
+                prompt: prompt
             })
         });
         
@@ -241,19 +595,27 @@ async function generateWithAI(query) {
         text = text.replace(/```json/g, '').replace(/```/g, '').trim();
         var parsed = JSON.parse(text);
 
+        if (tocHit) {
+            if ((!parsed.para || parsed.para === "-") && tocHit.para) parsed.para = tocHit.para;
+            if ((!parsed.page || parsed.page === "-") && /^\d+$/.test(String(query).trim())) parsed.page = String(query).trim();
+        }
+
         if (!db[selectedBookId]) db[selectedBookId] = [];
         db[selectedBookId].push(parsed);
         
+        incGenCount();
         saveData();
         renderBooks();
         renderPills();
         renderEntry(parsed);
-        statusEl.textContent = "";
+        if (statusEl) statusEl.textContent = "";
 
     } catch (err) {
         console.error(err);
-        statusEl.textContent = "❌ Помилка: " + err.message;
-        statusEl.style.color = "red";
+        if (statusEl) {
+            statusEl.textContent = "❌ Помилка: " + err.message;
+            statusEl.style.color = "red";
+        }
     }
 }
 
